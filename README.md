@@ -6,6 +6,10 @@
 
 `node index.js`
 
+## Demo MySQL database
+
+`import books.sql`
+
 ### Test API
 
 #### Get all books
