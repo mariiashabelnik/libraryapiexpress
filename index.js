@@ -192,10 +192,6 @@ app.post("/auth/login", (req, res) => {
     }
   );
 
-  {
-    username: "max";
-  }
-
   /*
   const hash = await bcrypt.hash(req.body.password, 10);
   sqlConnection.query(
