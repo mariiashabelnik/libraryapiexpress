@@ -1,11 +1,16 @@
 const express = require("express");
 const mysql = require("mysql");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+
+const secretPassword = "bghnkiy76aks";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 const port = 3000;
 
+//tillgång till bd
 const sqlConnection = mysql.createConnection({
   host: "localhost",
   user: "root",
@@ -20,6 +25,7 @@ sqlConnection.connect(function (err) {
   console.log("Connected!");
 });
 
+//hämta alla böcker
 app.get("/books", (req, res) => {
   sqlConnection.query("SELECT * FROM books order by added", (err, response) => {
     if (err) {
@@ -29,6 +35,7 @@ app.get("/books", (req, res) => {
   });
 });
 
+//hämta en bok
 app.get("/books/:id", (req, res) => {
   const { id } = req.params;
   sqlConnection.query("SELECT * FROM books where id=?", id, (err, response) => {
@@ -44,6 +51,7 @@ app.get("/books/:id", (req, res) => {
   });
 });
 
+//skapa en bok
 app.post("/books", (req, res) => {
   sqlConnection.query(
     "INSERT INTO `library`.`books` (`title`, `category`, `author`, `released`) VALUES (?, ?, ?, ?)",
@@ -62,6 +70,7 @@ app.post("/books", (req, res) => {
   );
 });
 
+//ändra en bok (full)
 app.put("/books/:id", (req, res) => {
   const { id } = req.params;
   sqlConnection.query(
@@ -81,6 +90,7 @@ app.put("/books/:id", (req, res) => {
   );
 });
 
+//Ändra en bok (partial)
 app.patch("/books/:id", (req, res) => {
   const { id } = req.params;
 
@@ -126,6 +136,7 @@ app.patch("/books/:id", (req, res) => {
   });
 });
 
+//ta bort en bok
 app.delete("/books/:id", (req, res) => {
   const { id } = req.params;
   sqlConnection.query("DELETE FROM books where id=?", id, (err, response) => {
@@ -134,6 +145,70 @@ app.delete("/books/:id", (req, res) => {
     }
     res.json(response);
   });
+});
+
+//skapa användare
+app.post("/auth/register", async (req, res) => {
+  const hash = await bcrypt.hash(req.body.password, 10);
+  sqlConnection.query(
+    "INSERT INTO `library`.`users` (`name`, `username`, `password`) VALUES (?, ?, ?)",
+    [req.body.name, req.body.username, hash],
+    (err, response) => {
+      if (err) {
+        return res.json(400, err);
+      }
+      res.json({ msg: "User created" });
+    }
+  );
+});
+
+//login användare
+app.post("/auth/login", (req, res) => {
+  sqlConnection.query(
+    "SELECT * FROM users where username=? limit 1",
+    [req.body.username],
+    async (err, response) => {
+      if (err) {
+        return res.json(400, err);
+      }
+
+      if (!response[0]) {
+        return res.json({ msg: "no such user" });
+      }
+
+      const isCorrect = await bcrypt.compare(
+        req.body.password,
+        response[0].password
+      );
+
+      if (isCorrect === false) {
+        return res.json({ msg: "no such user" });
+      }
+
+      // send back JWT token med userid
+      const token = jwt.sign(response[0], secretPassword);
+
+      res.json({ token });
+    }
+  );
+
+  {
+    username: "max";
+  }
+
+  /*
+  const hash = await bcrypt.hash(req.body.password, 10);
+  sqlConnection.query(
+    "INSERT INTO `library`.`users` (`name`, `username`, `password`) VALUES (?, ?, ?)",
+    [req.body.name, req.body.username, hash],
+    (err, response) => {
+      if (err) {
+        return res.json(400, err);
+      }
+      res.json({ msg: "User created" });
+    }
+  ); 
+  */
 });
 
 app.listen(port, () => {
