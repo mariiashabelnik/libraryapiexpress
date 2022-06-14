@@ -186,7 +186,7 @@ app.post("/auth/login", (req, res) => {
       }
 
       // send back JWT token med userid
-      const token = jwt.sign(response[0], secretPassword);
+      const token = jwt.sign({ userId: response[0].id }, secretPassword);
 
       res.json({ token });
     }
